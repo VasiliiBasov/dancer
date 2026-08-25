@@ -124,6 +124,58 @@
         const el = document.getElementById('countdown');
         if (!el) { onDone(); return; }
         let beatInt = null;
+
+        // Auto-fit: уменьшает текст через transform: scale(K), чтобы он
+        // гарантированно влез в доступную ширину. Учитывает:
+        //  • реальную clientWidth родителя (не viewport) — корректно при
+        //    повороте экрана и в обоих ориентациях;
+        //  • естественную ширину текста (max-width/padding снимаем для замера,
+        //    иначе scrollWidth вернёт уже обрезанное значение и мы ничего
+        //    не уменьшим);
+        //  • safe-area для устройств с вырезом.
+        function fitToWidth() {
+            // 1) определяем доступную ширину
+            let avail;
+            if (el.clientWidth > 0) {
+                avail = el.clientWidth;
+            } else if (el.parentElement && el.parentElement.clientWidth > 0) {
+                avail = el.parentElement.clientWidth;
+            } else {
+                avail = window.innerWidth || document.documentElement.clientWidth || 360;
+            }
+            // safe-area + запас
+            const pad = 16; // 8px с каждой стороны
+            avail = Math.max(120, avail - pad);
+
+            // 2) снимаем ограничители, чтобы измерить ЕСТЕСТВЕННУЮ ширину текста
+            const savedMax = main.style.maxWidth;
+            const savedPad = main.style.paddingLeft;
+            const savedPadR = main.style.paddingRight;
+            const savedWS = main.style.whiteSpace;
+            const savedT = main.style.transform;
+            main.style.maxWidth = 'none';
+            main.style.paddingLeft = '0';
+            main.style.paddingRight = '0';
+            main.style.whiteSpace = 'nowrap';
+            main.style.transform = 'none';
+            // форс-reflow чтобы измерение было точным
+            const natural = main.scrollWidth;
+            // восстанавливаем CSS-правила (для следующих цифр)
+            main.style.maxWidth = savedMax;
+            main.style.paddingLeft = savedPad;
+            main.style.paddingRight = savedPadR;
+            main.style.whiteSpace = savedWS;
+            main.style.transform = savedT;
+
+            // 3) если не влезает — масштабируем
+            if (natural > avail && natural > 0) {
+                const k = avail / natural;
+                main.style.transform = `scale(${k})`;
+                main.style.transformOrigin = 'center center';
+            } else {
+                main.style.transform = '';
+            }
+        }
         const finish = () => { if (beatInt) clearInterval(beatInt); el.innerHTML = ''; el.classList.remove('with-score'); onDone(); };
         el.classList.add('visible');
         if (steps.roundScore !== undefined && steps.roundScore !== null) el.classList.add('with-score');
@@ -148,17 +200,10 @@
                     // Auto-fit: если текст не помещается по ширине — уменьшаем
                     // через CSS scale, чтобы гарантированно вписался с любым
                     // шрифтом и длиной надписи (в т.ч. «Погнали!» с !).
-                    requestAnimationFrame(() => {
-                        const avail = el.clientWidth - 16; // 8px запас с каждой стороны
-                        const natural = main.scrollWidth;
-                        if (natural > avail && avail > 0) {
-                            const k = Math.min(1, avail / natural);
-                            main.style.transform = `scale(${k})`;
-                            main.style.transformOrigin = 'center center';
-                        } else {
-                            main.style.transform = '';
-                        }
-                    });
+                    // Важно: нужно дождаться layout, а при измерении — снять
+                    // ограничивающие max-width/padding, иначе scrollWidth вернёт
+                    // уже обрезанное значение.
+                    requestAnimationFrame(() => requestAnimationFrame(fitToWidth));
                     if (isLast) {
                         setTimeout(() => el.classList.remove('visible'), dur * 600);
                     }
