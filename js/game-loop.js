@@ -247,9 +247,20 @@ const GameLoop = (function() {
         }
         const frozen = s.freezeTimer && s.freezeTimer > 0;
         if (!frozen) {
+            // На первом круге (PHASE_RAMP_UP) заканчиваем спавн нот на 2 сек
+            // раньше — пропускаем те, чей beatTime > конец_первого_круга − 2.
+            // Сами ноты не теряются: nextBeatIdx всё равно двигается, и на
+            // втором круге (PHASE_RUSH) они заспавнятся по обычной логике.
+            const firstCircleEnd = PHASE_RAMP_UP_DUR - 2; // 44
             while (s.nextBeatIdx < beats.length &&
                    beats[s.nextBeatIdx] - tt <= songTime + 0.3) {
-                Notes.spawn(beats[s.nextBeatIdx]);
+                const bt = beats[s.nextBeatIdx];
+                if (s.speedPhase === 0 && bt > firstCircleEnd) {
+                    // Пропускаем спавн, но двигаем индекс, чтобы не застрять.
+                    s.nextBeatIdx++;
+                    continue;
+                }
+                Notes.spawn(bt);
                 s.nextBeatIdx++;
             }
             Notes.update(songTime);
