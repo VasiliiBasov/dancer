@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Dancing Cat" />
     <meta name="theme-color" content="#0a0420" />
     <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='52'>🐱</text></svg>" />
+    <link rel="apple-touch-icon" href="assets/cat.png" />
     <title>🐱 Dancing Cat — Парти-тайм!</title>
     <link rel="stylesheet" href="style.css" />
 </head>
@@ -18,6 +21,10 @@
                 <div class="loader-cat">🐱</div>
                 <h1>Dancing Cat</h1>
                 <p id="loading-text">Котик просыпается...</p>
+                <div id="loading-bar-wrap" class="loading-bar-wrap" aria-hidden="true">
+                    <div id="loading-bar" class="loading-bar"></div>
+                </div>
+                <p id="loading-tip" class="loading-tip">Совет: тапай в ритм музыки, чтобы кот прыгал!</p>
             </div>
         </section>
 
@@ -72,6 +79,16 @@
                 <button id="menuBtn" class="small-btn">В меню</button>
             </div>
         </section>
+
+        <!-- Подсказка добавить на домашний экран (iOS пока не умеет beforeinstallprompt). -->
+        <div id="ios-install-banner" class="ios-install-banner" hidden>
+            <div class="ios-install-text">
+                <b>📲 Добавь на домашний экран!</b>
+                <span>Нажми <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+                «Поделиться», затем «На экран Домой»</span>
+            </div>
+            <button id="ios-install-close" class="ios-install-close" aria-label="Закрыть">×</button>
+        </div>
     </div>
 
     <script src="js/audio.js"></script>
@@ -79,5 +96,37 @@
     <script src="js/cat.js"></script>
     <script src="js/game.js"></script>
     <script src="js/game-loop.js"></script>
+    <script>
+        // Регистрация Service Worker для офлайн-кеширования (PWA).
+        // Только HTTPS или localhost — на http://localhost работает.
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch((err) => {
+                    console.warn('[SW] register failed:', err);
+                });
+            });
+        }
+
+        // iOS install banner — показываем только на iOS-Safari и только если
+        // пользователь не закрывал раньше (флаг в localStorage). Поскольку iOS
+        // не поддерживает beforeinstallprompt, единственный способ — намекнуть.
+        (function () {
+            const ua = navigator.userAgent;
+            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+            const isStandalone = window.navigator.standalone === true
+                || window.matchMedia('(display-mode: standalone)').matches;
+            if (!isIOS || isStandalone) return;
+            if (localStorage.getItem('ios-install-dismissed') === '1') return;
+            const banner = document.getElementById('ios-install-banner');
+            const closeBtn = document.getElementById('ios-install-close');
+            if (!banner || !closeBtn) return;
+            // Показать через 2 с, чтобы пользователь успел увидеть главный экран.
+            setTimeout(() => { banner.hidden = false; }, 2000);
+            closeBtn.addEventListener('click', () => {
+                banner.hidden = true;
+                localStorage.setItem('ios-install-dismissed', '1');
+            });
+        })();
+    </script>
 </body>
 </html>

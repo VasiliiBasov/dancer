@@ -9,11 +9,43 @@ const Audio = (() => {
 
     async function load(url, statusCb) {
         if (statusCb) onStatus = statusCb;
-        setStatus('Загружаем музыку...');
+        setStatus('Загружаем музыку… 0%');
         ctx = new (window.AudioContext || window.webkitAudioContext)();
         const res = await fetch(url);
         if (!res.ok) throw new Error('Не удалось загрузить MP3: ' + res.status);
-        const arr = await res.arrayBuffer();
+        // Streaming download с прогрессом (важно на мобильном: видно, что игра
+        // не зависла при загрузке 7+ МБ).
+        const total = Number(res.headers.get('content-length')) || 0;
+        const reader = res.body && res.body.getReader ? res.body.getReader() : null;
+        let arr;
+        if (reader && total) {
+            const chunks = [];
+            let received = 0;
+            // Throttle обновления статуса — не чаще 1 раза в ~150 мс, чтобы не
+            // спамить DOM на слабых телефонах.
+            let lastUpdate = 0;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+                received += value.length;
+                const now = performance.now();
+                if (now - lastUpdate > 150 || received === total) {
+                    const pct = Math.min(99, Math.floor((received / total) * 100));
+                    setStatus('Загружаем музыку… ' + pct + '%');
+                    lastUpdate = now;
+                }
+            }
+            // Склеиваем чанки в один ArrayBuffer.
+            arr = new Uint8Array(received);
+            let offset = 0;
+            for (const c of chunks) { arr.set(c, offset); offset += c.length; }
+            arr = arr.buffer;
+        } else {
+            // Fallback: старые браузеры без streaming API.
+            arr = await res.arrayBuffer();
+        }
+        setStatus('Декодируем MP3…');
         buffer = await ctx.decodeAudioData(arr);
         analyser = ctx.createAnalyser();
         analyser.fftSize = 1024;

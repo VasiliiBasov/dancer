@@ -39,6 +39,16 @@
     }
     window.addEventListener('resize', resize);
     window.addEventListener('load', resize);
+    // orientationchange срабатывает на мобильных при повороте экрана ДО того,
+    // как innerWidth/innerHeight обновятся — поэтому делаем двойной rAF.
+    window.addEventListener('orientationchange', () => {
+        requestAnimationFrame(() => requestAnimationFrame(resize));
+    });
+    // visualViewport учитывает появление/скрытие экранной клавиатуры (если бы
+    // были input'ы), но и без неё помогает на iOS при resize-баре Safari.
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', resize);
+    }
 
     function showScreen(name) {
         state.screen = name;
@@ -46,10 +56,17 @@
     }
 
     async function init() {
+        const bar = el('loading-bar');
+        const setBar = (pct) => { if (bar) bar.style.width = pct + '%'; };
         try {
             await Audio.load('assets/song.mp3', (text) => {
                 el('loading-text').textContent = text;
+                // Парсим «Загружаем музыку… NN%» и обновляем прогресс-бар.
+                const m = /(\d{1,3})\s*%/.exec(text);
+                if (m) setBar(Math.min(100, +m[1]));
+                else if (/Декодируем/i.test(text)) setBar(100);
             });
+            setBar(100);
             await Audio.analyzeBeats();
             setTimeout(() => showScreen('menu'), 300);
         } catch (err) {
