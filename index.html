@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#0a0420" />
+    <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='52'>🐱</text></svg>" />
+    <title>🐱 Dancing Cat — Парти-тайм!</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="app">
+        <!-- Экран загрузки -->
+        <section id="loading" class="screen visible">
+            <div class="loader-wrap">
+                <div class="loader-cat">🐱</div>
+                <h1>Dancing Cat</h1>
+                <p id="loading-text">Котик просыпается...</p>
+            </div>
+        </section>
+
+        <!-- Главное меню -->
+        <section id="menu" class="screen">
+            <div class="menu-wrap">
+                <div class="title">🐱 Dancing Cat</div>
+                <div class="subtitle">Тапай в ритм, чтобы кот танцевал!</div>
+                <button id="startBtn" class="big-btn">▶ Начать вечеринку</button>
+                <div class="hints">
+                    <div>📱 Тап по экрану</div>
+                    <div>⌨️ Пробел на ПК</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Игровой экран -->
+        <section id="game" class="screen">
+            <canvas id="canvas"></canvas>
+            <div id="countdown"></div>
+            <div id="hud">
+                <div class="hud-top">
+                    <div class="hud-score">
+                        <div class="hud-label">СЧЁТ</div>
+                        <div id="score">0</div>
+                    </div>
+                    <div class="hud-combo">
+                        <div class="hud-label">КОМБО</div>
+                        <div id="combo">0</div>
+                    </div>
+                    <div class="hud-mult">
+                        <div class="hud-label">×</div>
+                        <div id="mult">1</div>
+                    </div>
+                </div>
+                <div id="feedback" class="feedback"></div>
+            </div>
+        </section>
+
+        <!-- Экран окончания -->
+        <section id="end" class="screen">
+            <div class="end-wrap">
+                <div class="end-title">🎉 Парти закончилась!</div>
+                <div class="end-stats">
+                    <div class="stat"><span>Счёт</span><b id="final-score">0</b></div>
+                    <div class="stat"><span>Макс. комбо</span><b id="final-combo">0</b></div>
+                    <div class="stat"><span>Perfect</span><b id="final-perfect">0</b></div>
+                    <div class="stat"><span>Good</span><b id="final-good">0</b></div>
+                    <div class="stat"><span>Miss</span><b id="final-miss">0</b></div>
+                </div>
+                <button id="againBtn" class="big-btn">🔁 Ещё раз!</button>
+                <button id="menuBtn" class="small-btn">В меню</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="js/audio.js"></script>
+    <script src="js/notes.js"></script>
+    <script src="js/cat.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/game-loop.js"></script>
+</body>
+</html>
