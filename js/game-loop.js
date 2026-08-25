@@ -151,12 +151,11 @@ const GameLoop = (function() {
         // ся навсегда (баг «на 2-м круге нот нет, тапы не работают»).
         s.freezeTimer = (s.freezeTimer || 0);
         if (s.freezeTimer > 0) { s.freezeTimer -= dt; if (s.freezeTimer < 0) s.freezeTimer = 0; }
-        const PHASE_RAMP_UP_DUR = 48;
-        // Длительность «первого круга» = RUSH_START_TIME − PHASE_RAMP_UP_DUR.
-        // По умолчанию 44 сек (было 48 — укорочено на 2 сек, чтобы пауза
-        // «3-2-1-Погнали!» появлялась немного раньше).
+        const PHASE_RAMP_UP_DUR = 46;
+        // Длительность первого круга (PHASE_RAMP_UP). После неё — пауза
+        // PHASE_SLOW (кот шёпот-прыгает), затем «3-2-1-Погнали!» и второй круг.
         const PHASE_SLOW_DUR    = 44;
-        const RUSH_START_TIME   = PHASE_RAMP_UP_DUR + PHASE_SLOW_DUR; // 92
+        const RUSH_START_TIME   = PHASE_RAMP_UP_DUR + PHASE_SLOW_DUR; // 90
         const RUSH_STEP         = 7;
         // s.speedCycle исторически нигде не записывается — реальный «круг»
         // живёт в замыкании GameLoop как `_cycle`. Без GameLoop.getCycle() cycle
@@ -164,7 +163,7 @@ const GameLoop = (function() {
         const cycle = (GameLoop && GameLoop.getCycle) ? GameLoop.getCycle() : (s.speedCycle || 0);
         let newSpeed = s.gameSpeed;
         // --- Phase transitions (one-shot) ---
-        // PHASE_RAMP_UP (0) -> PHASE_SLOW (1) at t=48s
+        // PHASE_RAMP_UP (0) -> PHASE_SLOW (1) at t=PHASE_RAMP_UP_DUR (46s)
         if (s.speedPhase === 0 && s.totalTime >= PHASE_RAMP_UP_DUR) {
             s.speedPhase = 1; s.speedTimer = 0; s.autoJumpTimer = 0;
             newSpeed = 1.00;
