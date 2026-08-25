@@ -308,6 +308,11 @@ html, body {
     transform: scale(1);
 }
 #countdown[data-tone="go"] {
+    /* Если когда-то поставим tone на родителе — градиент применится к #countdown.
+       Но реально main.dataset.tone ставится в JS на .cd-main, так что
+       основная ветка — селектор ниже. */
+}
+#countdown .cd-main[data-tone="go"] {
     background: linear-gradient(180deg, var(--neon-yellow), var(--neon-pink));
     -webkit-background-clip: text;
     background-clip: text;
