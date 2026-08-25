@@ -272,8 +272,13 @@ html, body {
     line-height: 1;
     max-width: 96vw;
     text-align: center;
+    /* nowrap + JS auto-fit scale = гарантированно влезает одной строкой */
     white-space: nowrap;
     padding: 0 4vw;
+    /* JS применяет transform: scale(K) если текст шире доступной области.
+       transform-origin = центр чтобы текст уменьшался симметрично. */
+    transform-origin: center center;
+    will-change: transform;
 }
 #countdown .cd-sub {
     font-size: clamp(20px, 4vw, 36px);

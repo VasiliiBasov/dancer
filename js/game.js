@@ -145,6 +145,20 @@
                     main.classList.remove('pulse');
                     void main.offsetWidth;
                     main.classList.add('pulse');
+                    // Auto-fit: если текст не помещается по ширине — уменьшаем
+                    // через CSS scale, чтобы гарантированно вписался с любым
+                    // шрифтом и длиной надписи (в т.ч. «Погнали!» с !).
+                    requestAnimationFrame(() => {
+                        const avail = el.clientWidth - 16; // 8px запас с каждой стороны
+                        const natural = main.scrollWidth;
+                        if (natural > avail && avail > 0) {
+                            const k = Math.min(1, avail / natural);
+                            main.style.transform = `scale(${k})`;
+                            main.style.transformOrigin = 'center center';
+                        } else {
+                            main.style.transform = '';
+                        }
+                    });
                     if (isLast) {
                         setTimeout(() => el.classList.remove('visible'), dur * 600);
                     }
