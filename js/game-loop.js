@@ -143,8 +143,8 @@ const GameLoop = (function() {
         // === Phased speed system ===
         s.speedTimer += dt;
         s.totalTime  = (s.totalTime || 0) + dt;
-        // Initialise the phase. undefined is neither 0/1/2 so we must seed it once.
-        if (s.speedPhase === undefined) s.speedPhase = 0;
+        // Initialise the phase. undefined — стартуем с прелюдии (-1).
+        if (s.speedPhase === undefined) s.speedPhase = -1;
         // Freeze-таймер декрементируется **во всех фазах**. Раньше он
         // декрементировался только в PHASE_SLOW, поэтому в PHASE_RUSH после
         // countdown freezeTimer «залипал» на 4.0 — спавн нот и тапов блокировал-
@@ -152,8 +152,13 @@ const GameLoop = (function() {
         s.freezeTimer = (s.freezeTimer || 0);
         if (s.freezeTimer > 0) { s.freezeTimer -= dt; if (s.freezeTimer < 0) s.freezeTimer = 0; }
         const PHASE_RAMP_UP_DUR = 46;
-        // Длительность первого круга (PHASE_RAMP_UP). После неё — пауза
-        // PHASE_SLOW (кот шёпот-прыгает), затем «3-2-1-Погнали!» и второй круг.
+        // Длительность первого круга (PHASE_RAMP_UP). Первые PRELUDE_DUR секунд
+        // первого круга — это «прелюдия» (шёпот-прыжки кота, нот нет), в конце
+        // неё появляется «3-2-1-Погнали!» и стартует геймплейный первый круг.
+        const PRELUDE_DUR       = 15;
+        const PRELUDE_END_TIME  = PRELUDE_DUR; // 15 — конец прелюдии
+        // После первого круга — пауза PHASE_SLOW (кот шёпот-прыгает), затем
+        // «3-2-1-Погнали!» и второй круг.
         const PHASE_SLOW_DUR    = 44;
         const RUSH_START_TIME   = PHASE_RAMP_UP_DUR + PHASE_SLOW_DUR; // 90
         const RUSH_STEP         = 7;
@@ -163,28 +168,14 @@ const GameLoop = (function() {
         const cycle = (GameLoop && GameLoop.getCycle) ? GameLoop.getCycle() : (s.speedCycle || 0);
         let newSpeed = s.gameSpeed;
         // --- Phase transitions (one-shot) ---
-        // PHASE_RAMP_UP (0) -> PHASE_SLOW (1) at t=PHASE_RAMP_UP_DUR (46s)
-        if (s.speedPhase === 0 && s.totalTime >= PHASE_RAMP_UP_DUR) {
-            s.speedPhase = 1; s.speedTimer = 0; s.autoJumpTimer = 0;
-            newSpeed = 1.00;
-
-        }
-        // PHASE_SLOW (1) -> PHASE_RUSH (2) at t=RUSH_START_TIME (92s).
-        // Это «граница кругов»: первый круг закончился, начинается второй.
-        // Показываем 3-2-1-«Погнали!» поверх игры, замораживаем спавн нот и
-        // тапы на время отсчёта, после чего игра ускоряется.
-        if (s.speedPhase === 1 && s.totalTime >= RUSH_START_TIME) {
+        // PHASE_PRELUDE (-1): стартует с самого начала. Длится PRELUDE_DUR сек,
+        // затем показываем «3-2-1-Погнали!» и переходим в PHASE_RAMP_UP (2).
+        if (s.speedPhase === -1 && s.totalTime >= PRELUDE_END_TIME) {
             s.speedPhase = 2; s.speedTimer = 0; s.speedStep = 0; s.autoJumpTimer = 0;
-            // На 2-м круге (cycle=2 после bumpCycle в game.js:startGame +
-            // bumpCycle здесь) стартуем на 1.5x от базовой. (cycle-1)
-            // компенсирует первый bumpCycle в game.js, давая ровно 1.50.
-            // 3-й круг (cycle=3): 1.60 и т.д.
-            newSpeed = 1.50 + 0.10 * (cycle - 1);
+            // После прелюдии bumpCycle: cycle=1 = первый круг.
+            // newSpeed = 1.00 — стартовая скорость первого круга.
             if (bumpCycle) bumpCycle();
-            // Заморозить ноты/тапы на время countdown (≈ 3.5 с — 4 шага по 0.5 с
-            // плюс последний двойной). Реальная длительность считается в
-            // showCountdown, но freezeTimer декрементируется каждый кадр и
-            // безопасно «пересидит» если countdown чуть длиннее.
+            newSpeed = 1.00;
             s.freezeTimer = 4.0;
             if (window.Game && window.Game.showCountdown) {
                 const beats = Audio.getBeats ? (Audio.getBeats() || []) : [];
@@ -194,8 +185,36 @@ const GameLoop = (function() {
                     for (let i = 1; i < Math.min(beats.length, 12); i++) { total += beats[i] - beats[i-1]; n++; }
                     if (n > 0) beatDur = total / n;
                 }
-                // Без roundLabel/roundScore — под «3-2-1-Погнали!» ничего не пишем,
-                // чтобы не показывать промежуточный итог между кругами.
+                window.Game.showCountdown({
+                    labels: ['3', '2', '1', 'Погнали!'],
+                    beatDur, beats
+                }, function () { /* loop уже крутится, noop */ });
+            }
+        }
+        // PHASE_RAMP_UP (2) -> PHASE_SLOW (1) at t=PHASE_RAMP_UP_DUR (46s):
+        // первый круг (сPRELUDE_DUR шёл) закончился, начинается брейк SLOW.
+        if (s.speedPhase === 2 && s.totalTime >= PHASE_RAMP_UP_DUR) {
+            s.speedPhase = 1; s.speedTimer = 0; s.autoJumpTimer = 0;
+            newSpeed = 1.00;
+        }
+        // PHASE_SLOW (1) -> PHASE_RUSH (3) at t=RUSH_START_TIME (90s).
+        // Это «граница кругов»: первый круг закончился, начинается второй.
+        // Показываем 3-2-1-«Погнали!» поверх игры, замораживаем спавн нот и
+        // тапы на время отсчёта, после чего игра ускоряется.
+        if (s.speedPhase === 1 && s.totalTime >= RUSH_START_TIME) {
+            s.speedPhase = 3; s.speedTimer = 0; s.speedStep = 0; s.autoJumpTimer = 0;
+            // На 2-м круге (cycle=2) стартуем на 1.5x от базовой.
+            newSpeed = 1.50 + 0.10 * (cycle - 1);
+            if (bumpCycle) bumpCycle();
+            s.freezeTimer = 4.0;
+            if (window.Game && window.Game.showCountdown) {
+                const beats = Audio.getBeats ? (Audio.getBeats() || []) : [];
+                let beatDur = 0.5;
+                if (beats.length > 1) {
+                    let total = 0, n = 0;
+                    for (let i = 1; i < Math.min(beats.length, 12); i++) { total += beats[i] - beats[i-1]; n++; }
+                    if (n > 0) beatDur = total / n;
+                }
                 window.Game.showCountdown({
                     labels: ['3', '2', '1', 'Погнали!'],
                     beatDur, beats
@@ -203,28 +222,28 @@ const GameLoop = (function() {
             }
         }
         // --- Per-phase speed calculation ---
-        if (s.speedPhase === 0) {
-            if (s.speedTimer >= 8) { s.speedTimer = 0; s.speedStep += 1; }
-            const baseSpeed = cycle === 0 ? 1.00 : 1.10;
-            newSpeed = Math.min(1.60, baseSpeed + s.speedStep * 0.10);
-        } else if (s.speedPhase === 1) {
-            // SLOW phase: кот делает «шёпот-прыжки» (jump(true) — пара пикселей).
-            // На каждый авто-прыжок замораживаем ноты и тапы на 0.55 с —
-            // чтобы крошечный прыжок кота не конкурировал с геймплеем.
-            // freezeTimer уже декрементирован выше, общий для всех фаз.
+        if (s.speedPhase === -1 || s.speedPhase === 1) {
+            // PRELUDE (-1) и SLOW (1) между кругами: кот делает «шёпот-прыжки».
+            // На каждый авто-прыжок замораживаем тапы на 0.55 с, чтобы крошечный
+            // прыжок кота не конкурировал с геймплеем. Спавн нот заблокирован
+            // отдельным условием ниже.
             s.autoJumpTimer = (s.autoJumpTimer || 0) + dt;
             if (s.autoJumpTimer >= 0.55) {
                 s.autoJumpTimer = 0;
                 if (Cat.jump) Cat.jump(true);
                 if (Math.random() < 0.30 && Cat.toggleMirror) Cat.toggleMirror();
-                s.freezeTimer = 0.55; // на полсекунды убираем ноты и блокируем тапы
+                s.freezeTimer = 0.55;
             }
             newSpeed = 1.00;
         } else if (s.speedPhase === 2) {
+            // PHASE_RAMP_UP — первый круг (геймплей). Каждые 8 сек добавляем
+            // +0.10 к скорости, максимум 1.60x.
+            if (s.speedTimer >= 8) { s.speedTimer = 0; s.speedStep += 1; }
+            newSpeed = Math.min(1.60, 1.00 + s.speedStep * 0.10);
+        } else if (s.speedPhase === 3) {
+            // PHASE_RUSH — второй круг: базовая скорость 1.50 (= 1.5x). Каждые
+            // RUSH_STEP секунд добавляем +0.13. К концу трека успеет подняться.
             if (s.speedTimer >= RUSH_STEP) { s.speedTimer = 0; s.speedStep += 1; }
-            // 2-й круг: базовая скорость 1.50 (= 1.5x). Каждые RUSH_STEP секунд
-            // добавляем +0.13. К концу трека успеет подняться ещё на несколько
-            // ступеней. Формула согласована с transition-блоком выше.
             newSpeed = (1.50 + 0.10 * (cycle - 1)) + s.speedStep * 0.13;
         }
         if (newSpeed !== s.gameSpeed) {
@@ -250,7 +269,7 @@ const GameLoop = (function() {
         // кругами, где кот шёпот-прыгает в ожидании «3-2-1-Погнали!». Без этого
         // ограничения в начале SLOW иногда падали ещё 1–2 ноты из очереди.
         // Тапы по-прежнему блокируются через `freezeTimer` (во время авто-прыжка).
-        if (!frozen && s.speedPhase !== 1) {
+        if (!frozen && s.speedPhase !== 1 && s.speedPhase !== -1) {
             // На первом круге (PHASE_RAMP_UP) заканчиваем спавн нот на 2 сек
             // раньше — пропускаем те, чей beatTime > конец_первого_круга − 2.
             // Сами ноты не теряются: nextBeatIdx всё равно двигается, и на
@@ -259,7 +278,7 @@ const GameLoop = (function() {
             while (s.nextBeatIdx < beats.length &&
                    beats[s.nextBeatIdx] - tt <= songTime + 0.3) {
                 const bt = beats[s.nextBeatIdx];
-                if (s.speedPhase === 0 && bt > firstCircleEnd) {
+                if (s.speedPhase === 2 && bt > firstCircleEnd) {
                     // Пропускаем спавн, но двигаем индекс, чтобы не застрять.
                     s.nextBeatIdx++;
                     continue;

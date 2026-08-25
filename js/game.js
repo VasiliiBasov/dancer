@@ -148,28 +148,21 @@
         Notes.clear(); state.nextBeatIdx = 0;
         state.gameSpeed = 1; state.speedTimer = 0; state.speedStep = 0;
         state.freezeTimer = 0;
+        // Полный сброс фазового движка для корректного рестарта.
+        state.speedPhase = undefined; // game-loop переинициализирует в -1
+        state.totalTime = 0;
+        state.autoJumpTimer = 0;
         Notes.setSpeed(1);
         if (Cat.setGameSpeed) Cat.setGameSpeed(1);
         Audio.stop();
         Audio.play();
         if (Audio.setPlaybackRate) Audio.setPlaybackRate(1);
-        const cycle = (GameLoop && GameLoop.getCycle) ? GameLoop.getCycle() : 0;
-        if (GameLoop && GameLoop.bumpCycle) GameLoop.bumpCycle();
+        // Сбрасываем счётчик кругов. Цикл 0 = прелюдия, 1 = первый круг, 2 = второй.
+        if (GameLoop && GameLoop.resetCycle) GameLoop.resetCycle();
         state.lastTime = performance.now() / 1000;
-        const beats = (Audio.getBeats && Audio.getBeats()) || [];
-        let beatDur = 0.5;
-        if (beats.length > 1) {
-            let total = 0, n = 0;
-            for (let i = 1; i < Math.min(beats.length, 12); i++) { total += beats[i] - beats[i-1]; n++; }
-            if (n > 0) beatDur = total / n;
-        }
-        if (cycle >= 1) {
-            showCountdown({ labels: ['3', '2', '1', 'Погнали!'], beatDur, beats }, () => {
-                requestAnimationFrame(GameLoop.loop);
-            });
-        } else {
-            requestAnimationFrame(GameLoop.loop);
-        }
+        // Прелюдия стартует сразу, без «3-2-1-Погнали!» в начале — countdown
+        // появится в конце прелюдии автоматически из game-loop.js.
+        requestAnimationFrame(GameLoop.loop);
     }
     function resetStats() {
         state.score = 0; state.combo = 0; state.maxCombo = 0; state.multiplier = 1;
