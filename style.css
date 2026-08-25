@@ -260,12 +260,20 @@ html, body {
     font-weight: 900;
     font-size: clamp(96px, 18vw, 220px);
     letter-spacing: 0.02em;
-    text-shadow: 0 0 30px rgba(255, 62, 201, 0.7), 0 0 60px rgba(62, 240, 255, 0.5);
+    /* Glow делаем через filter: drop-shadow с цветной тенью — он работает
+       корректно с -webkit-text-fill-color: transparent (рисует по альфа-каналу
+       букв). text-shadow ЗДЕСЬ НЕЛЬЗЯ: при background-clip:text + transparent
+       text-fill в WebKit/Blink рендерит «теневой» текст как полноценный
+       дубль букв позади градиентного текста = визуальный «призрак»
+       «Погнали!» рядом с основной надписью. */
     background: linear-gradient(180deg, var(--neon-pink), var(--neon-cyan));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.5));
+    filter:
+        drop-shadow(0 0 18px rgba(255, 62, 201, 0.55))
+        drop-shadow(0 0 36px rgba(62, 240, 255, 0.40))
+        drop-shadow(0 8px 24px rgba(0, 0, 0, 0.5));
     gap: 8px;
 }
 #countdown .cd-main {
@@ -288,7 +296,10 @@ html, body {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 16px rgba(255, 225, 62, 0.5);
+    /* Тот же фикс: text-shadow несовместим с background-clip:text+transparent
+       в WebKit/Blink → рендерит «теневой» дубль. Используем drop-shadow
+       по альфа-каналу. */
+    filter: drop-shadow(0 0 10px rgba(255, 225, 62, 0.55));
     margin-bottom: 0;
 }
 #countdown.with-score { gap: 18px; }
