@@ -238,9 +238,9 @@ html, body {
     .hud-score, .hud-combo, .hud-mult { min-width: 60px; padding: 6px 10px; }
     .hud-score div:last-child, .hud-combo div:last-child, .hud-mult div:last-child { font-size: 18px; }
     .feedback { font-size: 28px; margin-bottom: 25vh; }
-    /* Countdown «3-2-1-Погнали!» — уменьшен для мобильных (с запасом под восклицательный знак). */
-    #countdown { font-size: clamp(32px, 7vw, 72px); }
-    #countdown[data-tone="go"] { font-size: clamp(20px, 6vw, 44px); letter-spacing: -0.01em; }
+    /* Countdown «3-2-1-Погнали!» — уменьшен для мобильных (vw в 2 раза меньше, без переноса). */
+    #countdown { font-size: clamp(28px, 4vw, 56px); }
+    #countdown[data-tone="go"] { font-size: clamp(18px, 3vw, 36px); letter-spacing: -0.02em; }
 }
 
 /* === Countdown overlay (3-2-1-«Погнали!») === */
@@ -272,9 +272,7 @@ html, body {
     line-height: 1;
     max-width: 96vw;
     text-align: center;
-    /* Чтобы длинное «Погнали!» не вылезало за края на узких экранах */
-    overflow-wrap: anywhere;
-    word-break: keep-all;
+    white-space: nowrap;
     padding: 0 4vw;
 }
 #countdown .cd-sub {
@@ -298,10 +296,10 @@ html, body {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: clamp(60px, 11vw, 140px);
-    /* Слово «Погнали!» + «!» — 9 символов жирным шрифтом; убираем letter-spacing,
+    font-size: clamp(48px, 5vw, 88px);
+    /* Слово «Погнали!» + «!» — 9 символов жирным шрифтом; сужаем letter-spacing,
        чтобы всё гарантированно поместилось на узких экранах */
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
 }
 @keyframes cd-pulse {
     0%   { transform: scale(0.4); opacity: 0; }
