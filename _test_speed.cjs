@@ -1,4 +1,4 @@
-/* Тесты фазового движка: прелюдия -> 1-й круг -> SLOW -> 2-й круг (rush) */
+/* Тесты фазового движка: прелюдия (9с) + countdown 5.6с со сдвигом -1с -> 1-й круг -> SLOW -> 2-й круг (rush) */
 const vm = require('vm');
 const fs = require('fs');
 
@@ -99,32 +99,60 @@ function assert(cond, msg) {
     if (!cond) pass = false;
 }
 
-// Сценарий 1: прелюдия (t=0..15)
+// Сценарий 1: прелюдия (t=0..9), до старта countdown (стартует в t=8)
 state.speedPhase = undefined;
 state.totalTime = 0;
 ctx._t.v = 0;
 ctx._playing_state.v = true;
 Game.startGame();
-advance(14);
+advance(7);
 assert(state.speedPhase === -1 && GameLoop.getCycle() === 0,
-    'at t=14s: PRELUDE phase=-1, cycle=0');
+    'at t=7s: PRELUDE phase=-1, cycle=0');
 
-// Сценарий 2: сразу после прелюдии (t=16)
+// Сценарий 2: конец прелюдии -> 1-й круг (t=9)
 advance(2);
 assert(state.speedPhase === 2 && GameLoop.getCycle() === 1 && state.gameSpeed.toFixed(2) === '1.00',
-    'at t=16s: 1st circle phase=2, cycle=1, speed=1.00');
+    'at t=9s: 1st circle phase=2, cycle=1, speed=1.00');
 
 // Сценарий 3: конец 1-го круга (t=46 -> SLOW)
-advance(30);
+advance(37);
 advance(0.5);
 assert(state.speedPhase === 1,
     'at t=~46.5s: 1st circle ends -> SLOW phase=1');
 
 // Сценарий 4: после RUSH_START_TIME (t=90)
+// Через 0.5 с после входа в RUSH (после 4 с countdown-freeze) игра стартует
+// на (1.50 + 0.10 * (2 - 1)) * 0.75 = 1.125x (2-й круг на 25 % медленнее).
 advance(50);
 advance(0.5);
-assert(state.speedPhase === 3 && GameLoop.getCycle() === 2 && state.gameSpeed >= 1.59 && state.gameSpeed <= 1.61,
-    'at t=~96.5s: RUSH phase=3, cycle=2, speed=1.60 (entry)');
+assert(state.speedPhase === 3 && GameLoop.getCycle() === 2 && state.gameSpeed >= 1.12 && state.gameSpeed <= 1.13,
+    'at t=~96.5s: RUSH phase=3, cycle=2, speed=1.125 (entry, 2nd circle x0.75)');
+
+// Сценарий 5: замедление прыжков кота в прелюдии (-1).
+// В PRELUDE накопитель autoJumpTimer растёт dt * animScale = dt/3,
+// поэтому прыжок происходит каждые 0.55 / (1/3) = 1.65 с реального времени.
+// За 3 с реального времени в PRELUDE происходит ровно 1 прыжок
+// (второй был бы на 1.65 с, третий — на 3.30 с — не успел).
+state.speedPhase = -1;
+state.totalTime = 0;
+state.lastTime = 0;
+state.autoJumpTimer = 0;
+ctx._jumpCount = { v: 0 };
+vm.runInContext(`Cat.jump = () => { _jumpCount.v += 1; };`, ctx);
+ctx._t.v = 0;
+ctx._playing_state.v = true;
+advance(3);
+assert(ctx._jumpCount.v === 1,
+    'PRELUDE: ровно 1 прыжок за 3 с реального времени (jumpRate=1/3)');
+
+// Сценарий 6: в прелюдии drawTime (визуальные таймеры) растёт в 3 раза
+// медленнее animTime. За 1 с реального времени drawTime += ~0.33.
+const dtBefore = state.drawTime;
+state.speedPhase = -1;
+advance(1);
+const dtDelta = state.drawTime - dtBefore;
+assert(dtDelta < 0.4 && dtDelta > 0.25,
+    'PRELUDE: drawTime += ~0.33 за 1 с реального времени');
 
 console.log(pass ? 'ALL PASS' : 'SOME FAILED');
 process.exit(pass ? 0 : 1);

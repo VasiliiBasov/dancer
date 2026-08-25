@@ -148,6 +148,10 @@
         Notes.clear(); state.nextBeatIdx = 0;
         state.gameSpeed = 1; state.speedTimer = 0; state.speedStep = 0;
         state.freezeTimer = 0;
+        // Сбросить флаг «countdown уже показан», чтобы он сработал заново
+        // после рестарта (game-loop.js дёргает showCountdown строго один раз
+        // за матч на отрезке [PRELUDE_END_TIME-LEAD, PRELUDE_END_TIME)).
+        state._preludeCountdownFired = false;
         // Полный сброс фазового движка для корректного рестарта.
         state.speedPhase = undefined; // game-loop переинициализирует в -1
         state.totalTime = 0;
