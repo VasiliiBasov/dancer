@@ -301,6 +301,13 @@ const GameLoop = (function() {
         // тапы на время отсчёта, после чего игра ускоряется.
         if (s.speedPhase === 1 && s.totalTime >= RUSH_START_TIME) {
             s.speedPhase = 3; s.speedTimer = 0; s.speedStep = 0; s.autoJumpTimer = 0;
+            // Снимаем «pulse» с countdown чтобы он не оставлял артефакт,
+            // если предыдущий countdown был прерван.
+            const cdEl = document.getElementById('countdown');
+            if (cdEl) {
+                const cdMain = cdEl.querySelector('.cd-main');
+                if (cdMain) cdMain.classList.remove('pulse');
+            }
             // На 2-м круге (cycle=2) стартуем на 1.5x от базовой.
             // Базовая скорость 2-го круга уменьшена на 25 % (× 0.75):
             // было 1.50 → стало 1.125, шаг +0.13 → +0.0975.

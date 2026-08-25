@@ -120,12 +120,46 @@
     });
     canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); handleTap(); });
 
+    // Глобальный handle активного countdown, чтобы при повторном вызове
+    // (рестарт, новый раунд) отменить старые setTimeout и не плодить
+    // наложенные «Погнали!» поверх друг друга.
+    let activeCountdown = null;
+
     function showCountdown(steps, onDone) {
         const el = document.getElementById('countdown');
         if (!el) { onDone(); return; }
-        let beatInt = null;
 
-        const finish = () => { if (beatInt) clearInterval(beatInt); el.innerHTML = ''; el.classList.remove('with-score'); onDone(); };
+        // Если предыдущий countdown ещё крутится — отменяем его
+        if (activeCountdown) {
+            activeCountdown.cancel();
+        }
+
+        let beatInt = null;
+        const timers = []; // все setTimeout этого вызова — отменяем при cancel/finish
+
+        const finish = () => {
+            // Очищаем ВСЕ pending setTimeout этого цикла
+            for (const t of timers) clearTimeout(t);
+            timers.length = 0;
+            if (beatInt) { clearInterval(beatInt); beatInt = null; }
+            el.innerHTML = '';
+            el.classList.remove('with-score');
+            if (activeCountdown) activeCountdown.cancelled = true;
+            activeCountdown = null;
+            onDone();
+        };
+
+        const cancel = () => {
+            for (const t of timers) clearTimeout(t);
+            timers.length = 0;
+            if (beatInt) { clearInterval(beatInt); beatInt = null; }
+            el.innerHTML = '';
+            el.classList.remove('with-score', 'visible');
+            if (activeCountdown) activeCountdown.cancelled = true;
+        };
+
+        activeCountdown = { cancel, cancelled: false };
+
         el.classList.add('visible');
         if (steps.roundScore !== undefined && steps.roundScore !== null) el.classList.add('with-score');
         el.innerHTML = '';
@@ -135,24 +169,20 @@
         if (steps.roundScore !== undefined && steps.roundScore !== null) el.appendChild(sub); else sub.remove();
 
         // Auto-fit: задаём визуальную ширину надписи = 1/3 видимого экрана.
-        // Работает одинаково в любой ориентации. Объявляем ПОСЛЕ создания
-        // main, иначе при первом вызове main ещё в TDZ — ReferenceError.
+        // Объявляем ПОСЛЕ создания main, иначе ReferenceError на main.
         function fitToWidth() {
-            const target = window.innerWidth / 3; // ровно треть экрана
-            // Снимаем ограничители на время замера
+            const target = window.innerWidth / 3;
             const savedMax = main.style.maxWidth;
             const savedPadL = main.style.paddingLeft;
             const savedPadR = main.style.paddingRight;
             main.style.maxWidth = 'none';
             main.style.paddingLeft = '0';
             main.style.paddingRight = '0';
-            // Форс-чтение layout перед замером
             void main.offsetWidth;
             const natural = main.scrollWidth;
             main.style.maxWidth = savedMax;
             main.style.paddingLeft = savedPadL;
             main.style.paddingRight = savedPadR;
-            // Масштабируем, только если естественная ширина БОЛЬШЕ трети экрана
             if (natural > target && natural > 0) {
                 const k = target / natural;
                 main.style.transform = `scale(${k})`;
@@ -160,7 +190,6 @@
             } else {
                 main.style.transform = '';
             }
-            // Отладка: видно в консоли что фит сработал
             if (window.console && console.log) {
                 console.log('[CD] "' + main.textContent + '" natural=' + natural + 'px target=' + Math.round(target) + 'px → k=' + (natural > target ? (target/natural).toFixed(3) : '1'));
             }
@@ -173,25 +202,34 @@
             (function(idx, lbl) {
                 const isLast = (idx === labels.length - 1);
                 const dur = isLast ? beatDur * 2 : beatDur;
-                setTimeout(() => {
+                timers.push(setTimeout(() => {
+                    // Если этот countdown уже отменён — ничего не делаем
+                    if (!activeCountdown || activeCountdown.cancelled) return;
                     main.textContent = lbl;
                     main.dataset.tone = isLast ? 'go' : 'num';
                     main.classList.remove('pulse');
                     void main.offsetWidth;
                     main.classList.add('pulse');
-                    // Двойной rAF чтобы layout был полностью готов
                     requestAnimationFrame(() => requestAnimationFrame(fitToWidth));
                     if (isLast) {
-                        setTimeout(() => el.classList.remove('visible'), dur * 600);
+                        timers.push(setTimeout(() => {
+                            if (activeCountdown && !activeCountdown.cancelled) {
+                                el.classList.remove('visible');
+                            }
+                        }, dur * 600));
                     }
-                }, acc * 1000);
+                }, acc * 1000));
             })(i, labels[i]);
             acc += (i === labels.length - 1) ? beatDur * 2 : beatDur;
         }
-        setTimeout(finish, acc * 1000);
+        timers.push(setTimeout(finish, acc * 1000));
         if (steps.beats && steps.beats.length > 0) {
             const start = performance.now();
             beatInt = setInterval(() => {
+                if (!activeCountdown || activeCountdown.cancelled) {
+                    clearInterval(beatInt); beatInt = null;
+                    return;
+                }
                 const e = (performance.now() - start) / 1000;
                 const nearest = steps.beats.reduce((p, c) => (Math.abs(c - e) < Math.abs(p - e)) ? c : p, steps.beats[0]);
                 if (Math.abs(nearest - e) < 0.06) {
