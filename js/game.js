@@ -129,6 +129,12 @@
         const el = document.getElementById('countdown');
         if (!el) { onDone(); return; }
 
+        // ДИАГНОСТИКА: считаем вызовы чтобы понять почему появляется дубль
+        showCountdown._callCount = (showCountdown._callCount || 0) + 1;
+        console.log('[CD] showCountdown call #' + showCountdown._callCount
+            + ' | activeCountdown=' + (activeCountdown ? 'yes' : 'no')
+            + ' | step=' + (steps.labels ? steps.labels.join(',') : '?'));
+
         // Если предыдущий countdown ещё крутится — отменяем его
         if (activeCountdown) {
             activeCountdown.cancel();
@@ -142,6 +148,12 @@
             for (const t of timers) clearTimeout(t);
             timers.length = 0;
             if (beatInt) { clearInterval(beatInt); beatInt = null; }
+            // Снимаем pulse/animation чтобы CSS-анимация не оставляла
+            // розовый «след» на падающем fade-out.
+            el.querySelectorAll('.cd-main').forEach((n) => {
+                n.classList.remove('pulse');
+                n.style.animation = 'none';
+            });
             el.innerHTML = '';
             el.classList.remove('with-score');
             if (activeCountdown) activeCountdown.cancelled = true;
@@ -153,6 +165,15 @@
             for (const t of timers) clearTimeout(t);
             timers.length = 0;
             if (beatInt) { clearInterval(beatInt); beatInt = null; }
+            // Снимаем анимацию с ЛЮБЫХ .cd-main внутри countdown, иначе
+            // CSS-pulse у старого элемента продолжает крутиться и оставляет
+            // «розовый призрак» рядом с новым синим «Погнали!».
+            el.querySelectorAll('.cd-main').forEach((n) => {
+                n.classList.remove('pulse');
+                n.style.animation = 'none';
+                void n.offsetWidth; // форс-перезапуск анимации
+                n.style.animation = '';
+            });
             el.innerHTML = '';
             el.classList.remove('with-score', 'visible');
             if (activeCountdown) activeCountdown.cancelled = true;
@@ -163,6 +184,11 @@
         el.classList.add('visible');
         if (steps.roundScore !== undefined && steps.roundScore !== null) el.classList.add('with-score');
         el.innerHTML = '';
+        // ДИАГНОСТИКА: проверяем что innerHTML действительно очистил DOM
+        const leftoverMains = el.querySelectorAll('.cd-main').length;
+        if (leftoverMains > 0) {
+            console.warn('[CD] WARNING: after innerHTML="", .cd-main count=' + leftoverMains);
+        }
         const main = document.createElement('div'); main.className = 'cd-main'; el.appendChild(main);
         const sub = document.createElement('div'); sub.className = 'cd-sub';
         if (steps.roundLabel) sub.textContent = steps.roundLabel + ': ' + steps.roundScore;
