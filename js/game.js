@@ -125,10 +125,18 @@
         if (!el) { onDone(); return; }
         let beatInt = null;
 
+        const finish = () => { if (beatInt) clearInterval(beatInt); el.innerHTML = ''; el.classList.remove('with-score'); onDone(); };
+        el.classList.add('visible');
+        if (steps.roundScore !== undefined && steps.roundScore !== null) el.classList.add('with-score');
+        el.innerHTML = '';
+        const main = document.createElement('div'); main.className = 'cd-main'; el.appendChild(main);
+        const sub = document.createElement('div'); sub.className = 'cd-sub';
+        if (steps.roundLabel) sub.textContent = steps.roundLabel + ': ' + steps.roundScore;
+        if (steps.roundScore !== undefined && steps.roundScore !== null) el.appendChild(sub); else sub.remove();
+
         // Auto-fit: задаём визуальную ширину надписи = 1/3 видимого экрана.
-        // Работает одинаково в любой ориентации и при любых ограничителях
-        // (max-width/padding у .cd-main), потому что измеряет ЕСТЕСТВЕННУЮ
-        // ширину текста со снятыми ограничениями.
+        // Работает одинаково в любой ориентации. Объявляем ПОСЛЕ создания
+        // main, иначе при первом вызове main ещё в TDZ — ReferenceError.
         function fitToWidth() {
             const target = window.innerWidth / 3; // ровно треть экрана
             // Снимаем ограничители на время замера
@@ -138,6 +146,8 @@
             main.style.maxWidth = 'none';
             main.style.paddingLeft = '0';
             main.style.paddingRight = '0';
+            // Форс-чтение layout перед замером
+            void main.offsetWidth;
             const natural = main.scrollWidth;
             main.style.maxWidth = savedMax;
             main.style.paddingLeft = savedPadL;
@@ -150,15 +160,12 @@
             } else {
                 main.style.transform = '';
             }
+            // Отладка: видно в консоли что фит сработал
+            if (window.console && console.log) {
+                console.log('[CD] "' + main.textContent + '" natural=' + natural + 'px target=' + Math.round(target) + 'px → k=' + (natural > target ? (target/natural).toFixed(3) : '1'));
+            }
         }
-        const finish = () => { if (beatInt) clearInterval(beatInt); el.innerHTML = ''; el.classList.remove('with-score'); onDone(); };
-        el.classList.add('visible');
-        if (steps.roundScore !== undefined && steps.roundScore !== null) el.classList.add('with-score');
-        el.innerHTML = '';
-        const main = document.createElement('div'); main.className = 'cd-main'; el.appendChild(main);
-        const sub = document.createElement('div'); sub.className = 'cd-sub';
-        if (steps.roundLabel) sub.textContent = steps.roundLabel + ': ' + steps.roundScore;
-        if (steps.roundScore !== undefined && steps.roundScore !== null) el.appendChild(sub); else sub.remove();
+
         const beatDur = steps.beatDur || 0.5;
         const labels = steps.labels || ['3', '2', '1', 'Погнали!'];
         let acc = 0;
@@ -172,12 +179,7 @@
                     main.classList.remove('pulse');
                     void main.offsetWidth;
                     main.classList.add('pulse');
-                    // Auto-fit: если текст не помещается по ширине — уменьшаем
-                    // через CSS scale, чтобы гарантированно вписался с любым
-                    // шрифтом и длиной надписи (в т.ч. «Погнали!» с !).
-                    // Важно: нужно дождаться layout, а при измерении — снять
-                    // ограничивающие max-width/padding, иначе scrollWidth вернёт
-                    // уже обрезанное значение.
+                    // Двойной rAF чтобы layout был полностью готов
                     requestAnimationFrame(() => requestAnimationFrame(fitToWidth));
                     if (isLast) {
                         setTimeout(() => el.classList.remove('visible'), dur * 600);
