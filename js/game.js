@@ -1,4 +1,4 @@
-/* game.js — состояние, экраны, ввод */
+﻿/* game.js — состояние, экраны, ввод */
 (function() {
     const state = {
         screen: 'loading', score: 0, combo: 0, maxCombo: 0, multiplier: 1,
@@ -34,13 +34,13 @@
         state.targetRadius = state.catSize * 1.05;
         Notes.setTarget(state.targetRadius);
         Notes.setCenter(w / 2, h / 2);
-        // Размер нот: на мобильных (<=480px) уменьшаем в 3 раза, чтобы кольца
+        // Размер нот: на мобильных (<=480px) уменьшаем до 2/3 от десктопа, чтобы кольца
         // не закрывали кота. matchMedia обновляется автоматически при повороте
         // экрана / ресайзе окна, поэтому достаточно вызывать в resize().
         const isMobile = window.matchMedia
             ? window.matchMedia('(max-width: 480px)').matches
             : (minDim <= 480);
-        Notes.setSizeMultiplier(isMobile ? 1 / 3 : 1);
+        Notes.setSizeMultiplier(isMobile ? 2 / 3 : 1);
         // Keep Cat in sync with the current canvas so its jump ceiling is correct.
         if (Cat.setBounds) Cat.setBounds(w / 2, h / 2, state.catSize);
     }
