@@ -152,8 +152,11 @@ const GameLoop = (function() {
         s.freezeTimer = (s.freezeTimer || 0);
         if (s.freezeTimer > 0) { s.freezeTimer -= dt; if (s.freezeTimer < 0) s.freezeTimer = 0; }
         const PHASE_RAMP_UP_DUR = 48;
-        const PHASE_SLOW_DUR    = 48;
-        const RUSH_START_TIME   = 94;
+        // Длительность «первого круга» = RUSH_START_TIME − PHASE_RAMP_UP_DUR.
+        // По умолчанию 44 сек (было 48 — укорочено на 2 сек, чтобы пауза
+        // «3-2-1-Погнали!» появлялась немного раньше).
+        const PHASE_SLOW_DUR    = 44;
+        const RUSH_START_TIME   = PHASE_RAMP_UP_DUR + PHASE_SLOW_DUR; // 92
         const RUSH_STEP         = 7;
         // s.speedCycle исторически нигде не записывается — реальный «круг»
         // живёт в замыкании GameLoop как `_cycle`. Без GameLoop.getCycle() cycle
@@ -167,7 +170,7 @@ const GameLoop = (function() {
             newSpeed = 1.00;
 
         }
-        // PHASE_SLOW (1) -> PHASE_RUSH (2) at t=96s.
+        // PHASE_SLOW (1) -> PHASE_RUSH (2) at t=RUSH_START_TIME (92s).
         // Это «граница кругов»: первый круг закончился, начинается второй.
         // Показываем 3-2-1-«Погнали!» поверх игры, замораживаем спавн нот и
         // тапы на время отсчёта, после чего игра ускоряется.
