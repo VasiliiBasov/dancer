@@ -80,15 +80,6 @@
             </div>
         </section>
 
-        <!-- Подсказка добавить на домашний экран (iOS пока не умеет beforeinstallprompt). -->
-        <div id="ios-install-banner" class="ios-install-banner" hidden>
-            <div class="ios-install-text">
-                <b>📲 Добавь на домашний экран!</b>
-                <span>Нажми <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
-                «Поделиться», затем «На экран Домой»</span>
-            </div>
-            <button id="ios-install-close" class="ios-install-close" aria-label="Закрыть">×</button>
-        </div>
     </div>
 
     <script src="js/audio.js"></script>
@@ -107,26 +98,6 @@
             });
         }
 
-        // iOS install banner — показываем только на iOS-Safari и только если
-        // пользователь не закрывал раньше (флаг в localStorage). Поскольку iOS
-        // не поддерживает beforeinstallprompt, единственный способ — намекнуть.
-        (function () {
-            const ua = navigator.userAgent;
-            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-            const isStandalone = window.navigator.standalone === true
-                || window.matchMedia('(display-mode: standalone)').matches;
-            if (!isIOS || isStandalone) return;
-            if (localStorage.getItem('ios-install-dismissed') === '1') return;
-            const banner = document.getElementById('ios-install-banner');
-            const closeBtn = document.getElementById('ios-install-close');
-            if (!banner || !closeBtn) return;
-            // Показать через 2 с, чтобы пользователь успел увидеть главный экран.
-            setTimeout(() => { banner.hidden = false; }, 2000);
-            closeBtn.addEventListener('click', () => {
-                banner.hidden = true;
-                localStorage.setItem('ios-install-dismissed', '1');
-            });
-        })();
     </script>
 </body>
 </html>
