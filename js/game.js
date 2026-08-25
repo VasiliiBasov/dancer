@@ -34,6 +34,13 @@
         state.targetRadius = state.catSize * 1.05;
         Notes.setTarget(state.targetRadius);
         Notes.setCenter(w / 2, h / 2);
+        // Размер нот: на мобильных (<=480px) уменьшаем в 3 раза, чтобы кольца
+        // не закрывали кота. matchMedia обновляется автоматически при повороте
+        // экрана / ресайзе окна, поэтому достаточно вызывать в resize().
+        const isMobile = window.matchMedia
+            ? window.matchMedia('(max-width: 480px)').matches
+            : (minDim <= 480);
+        Notes.setSizeMultiplier(isMobile ? 1 / 3 : 1);
         // Keep Cat in sync with the current canvas so its jump ceiling is correct.
         if (Cat.setBounds) Cat.setBounds(w / 2, h / 2, state.catSize);
     }

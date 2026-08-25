@@ -238,6 +238,9 @@ html, body {
     .hud-score, .hud-combo, .hud-mult { min-width: 60px; padding: 6px 10px; }
     .hud-score div:last-child, .hud-combo div:last-child, .hud-mult div:last-child { font-size: 18px; }
     .feedback { font-size: 28px; margin-bottom: 25vh; }
+    /* Countdown «3-2-1-Погнали!» — уменьшен в 2 раза (clamp: было 96-220, стало 48-110). */
+    #countdown { font-size: clamp(48px, 9vw, 110px); }
+    #countdown[data-tone="go"] { font-size: clamp(36px, 7vw, 90px); }
 }
 
 /* === Countdown overlay (3-2-1-«Погнали!») === */

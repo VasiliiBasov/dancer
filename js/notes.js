@@ -9,6 +9,12 @@ const Notes = (() => {
     let speed = 1; // множитель скорости (1 = норма, 2 = вдвое быстрее)
     function getTravelTime() { return BASE_TRAVEL_TIME / speed; }
 
+    // Множитель размера нот: 1 = норма (десктоп), 1/3 = мобильные.
+    // Управляется через setSizeMultiplier() из game.js (зависит от matchMedia).
+    let sizeMul = 1;
+    function setSizeMultiplier(m) { sizeMul = Math.max(0.1, Math.min(2, m)); }
+    function getSizeMultiplier() { return sizeMul; }
+
     let notes = [];
     let targetRadius = 80; // установит game.js
     let centerX = 0, centerY = 0;
@@ -121,7 +127,7 @@ const Notes = (() => {
     }
 
     function drawLiveNote(ctx, x, y, color, progress) {
-        const baseSize = 30;
+        const baseSize = 30 * sizeMul;
         const size = baseSize * (1 - progress * 0.3);
         const alpha = progress < 0.1 ? progress / 0.1 : (progress > 1 ? 1 - (progress - 1) / 0.3 : 1);
         ctx.save();
@@ -139,9 +145,9 @@ const Notes = (() => {
 
         // Кольцо
         ctx.strokeStyle = color;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 4 * sizeMul;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 20 * sizeMul;
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.stroke();
@@ -157,12 +163,12 @@ const Notes = (() => {
     function drawHitEffect(ctx, x, y, color, quality, dt) {
         const dur = quality === 'perfect' ? 0.4 : 0.3;
         const t = Math.min(1, dt / dur);
-        const size = 30 + t * 60;
+        const size = (30 + t * 60) * sizeMul;
         const alpha = 1 - t;
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.strokeStyle = color;
-        ctx.lineWidth = 6 * (1 - t);
+        ctx.lineWidth = 6 * sizeMul * (1 - t);
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.stroke();
@@ -174,7 +180,7 @@ const Notes = (() => {
             const py = y + Math.sin(a) * r;
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(px, py, 4 * (1 - t), 0, Math.PI * 2);
+            ctx.arc(px, py, 4 * sizeMul * (1 - t), 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.restore();
@@ -184,6 +190,7 @@ const Notes = (() => {
 
     return {
         setTarget, setCenter, spawn, clear, cleanup, update, draw, tryHit,
-        getActiveNotes, getTravelTime, HIT_RADIUS, setSpeed: s => speed = Math.max(0.5, Math.min(3, s)), getSpeed: () => speed
+        getActiveNotes, getTravelTime, HIT_RADIUS, setSpeed: s => speed = Math.max(0.5, Math.min(3, s)), getSpeed: () => speed,
+        setSizeMultiplier, getSizeMultiplier
     };
 })();

@@ -24,12 +24,16 @@ const Cat = (() => {
     function jump(tiny) {
         if (velY > -200) {
             if (tiny) {
-                // baseJump подобран так, чтобы пик высоты был ~30 пикс при любой gameSpeed.
-                // 30px => |velY| = sqrt(2 * g * h) = sqrt(2*2200*30) ~ 363
-                velY = -380;
+                // baseJump подобран так, чтобы пик высоты был ~15 пикс (было ~30)
+                // при любой gameSpeed. 15px => |velY| = sqrt(2*2200*15) ~ 257
+                // Высоты уменьшены в 2 раза (×SQRT1_2 к начальной скорости,
+                // потому что h = v²/(2g) — для половины высоты нужна v в √2 раз меньше).
+                velY = -380 * Math.SQRT1_2;
                 angularVel = 0;
             } else {
-                const baseJump = -550 - gameSpeed * 75;
+                // Высоты прыжков уменьшены в 2 раза (×SQRT1_2 к начальной скорости,
+                // потому что h = v²/(2g) — для половины высоты нужна v в √2 раз меньше).
+                const baseJump = (-550 - gameSpeed * 75) * Math.SQRT1_2;
                 velY = baseJump;
                 if (gameSpeed > 1.8) {
                     angularVel = (Math.random() > 0.5 ? 1 : -1) * (8 + gameSpeed * 6);
