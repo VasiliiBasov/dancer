@@ -125,51 +125,26 @@
         if (!el) { onDone(); return; }
         let beatInt = null;
 
-        // Auto-fit: уменьшает текст через transform: scale(K), чтобы он
-        // гарантированно влез в доступную ширину. Учитывает:
-        //  • реальную clientWidth родителя (не viewport) — корректно при
-        //    повороте экрана и в обоих ориентациях;
-        //  • естественную ширину текста (max-width/padding снимаем для замера,
-        //    иначе scrollWidth вернёт уже обрезанное значение и мы ничего
-        //    не уменьшим);
-        //  • safe-area для устройств с вырезом.
+        // Auto-fit: задаём визуальную ширину надписи = 1/3 видимого экрана.
+        // Работает одинаково в любой ориентации и при любых ограничителях
+        // (max-width/padding у .cd-main), потому что измеряет ЕСТЕСТВЕННУЮ
+        // ширину текста со снятыми ограничениями.
         function fitToWidth() {
-            // 1) определяем доступную ширину
-            let avail;
-            if (el.clientWidth > 0) {
-                avail = el.clientWidth;
-            } else if (el.parentElement && el.parentElement.clientWidth > 0) {
-                avail = el.parentElement.clientWidth;
-            } else {
-                avail = window.innerWidth || document.documentElement.clientWidth || 360;
-            }
-            // safe-area + запас
-            const pad = 16; // 8px с каждой стороны
-            avail = Math.max(120, avail - pad);
-
-            // 2) снимаем ограничители, чтобы измерить ЕСТЕСТВЕННУЮ ширину текста
+            const target = window.innerWidth / 3; // ровно треть экрана
+            // Снимаем ограничители на время замера
             const savedMax = main.style.maxWidth;
-            const savedPad = main.style.paddingLeft;
+            const savedPadL = main.style.paddingLeft;
             const savedPadR = main.style.paddingRight;
-            const savedWS = main.style.whiteSpace;
-            const savedT = main.style.transform;
             main.style.maxWidth = 'none';
             main.style.paddingLeft = '0';
             main.style.paddingRight = '0';
-            main.style.whiteSpace = 'nowrap';
-            main.style.transform = 'none';
-            // форс-reflow чтобы измерение было точным
             const natural = main.scrollWidth;
-            // восстанавливаем CSS-правила (для следующих цифр)
             main.style.maxWidth = savedMax;
-            main.style.paddingLeft = savedPad;
+            main.style.paddingLeft = savedPadL;
             main.style.paddingRight = savedPadR;
-            main.style.whiteSpace = savedWS;
-            main.style.transform = savedT;
-
-            // 3) если не влезает — масштабируем
-            if (natural > avail && natural > 0) {
-                const k = avail / natural;
+            // Масштабируем, только если естественная ширина БОЛЬШЕ трети экрана
+            if (natural > target && natural > 0) {
+                const k = target / natural;
                 main.style.transform = `scale(${k})`;
                 main.style.transformOrigin = 'center center';
             } else {

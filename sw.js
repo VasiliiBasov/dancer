@@ -9,7 +9,7 @@
  * Версия кеша увеличивается при изменениях ассетов — старый кеш
  * автоматически сбрасывается.
  */
-const CACHE_VERSION = 'dancer-v6';
+const CACHE_VERSION = 'dancer-v7';
 const CORE_ASSETS = [
     './',
     './index.html',
